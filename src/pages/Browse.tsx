@@ -17,15 +17,15 @@ import { genres, seasons, years, sortOptions } from '@/data/mockAnime';
 
 const Browse = () => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string>('');
-  const [selectedYear, setSelectedYear] = useState<string>('');
+  const [selectedSeason, setSelectedSeason] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
   const [sortBy, setSortBy] = useState('popularity');
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: animeList = [], isLoading } = useBrowseAnime({
     genres: selectedGenres.length > 0 ? selectedGenres : undefined,
-    season: selectedSeason || undefined,
-    seasonYear: selectedYear ? parseInt(selectedYear) : undefined,
+    season: selectedSeason !== 'all' ? selectedSeason : undefined,
+    seasonYear: selectedYear !== 'all' ? parseInt(selectedYear) : undefined,
     sort: sortBy,
     perPage: 30,
   });
@@ -100,7 +100,7 @@ const Browse = () => {
                 <SelectValue placeholder="Season" />
               </SelectTrigger>
               <SelectContent className="bg-card/95 backdrop-blur-xl border-border">
-                <SelectItem value="">All Seasons</SelectItem>
+                <SelectItem value="all">All Seasons</SelectItem>
                 {seasons.map(season => (
                   <SelectItem key={season} value={season}>
                     {season.charAt(0) + season.slice(1).toLowerCase()}
@@ -114,7 +114,7 @@ const Browse = () => {
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent className="bg-card/95 backdrop-blur-xl border-border">
-                <SelectItem value="">All Years</SelectItem>
+                <SelectItem value="all">All Years</SelectItem>
                 {years.map(year => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}
@@ -123,13 +123,13 @@ const Browse = () => {
               </SelectContent>
             </Select>
 
-            {(selectedGenres.length > 0 || selectedSeason || selectedYear) && (
+            {(selectedGenres.length > 0 || selectedSeason !== 'all' || selectedYear !== 'all') && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setSelectedGenres([]);
-                  setSelectedSeason('');
-                  setSelectedYear('');
+                  setSelectedSeason('all');
+                  setSelectedYear('all');
                 }}
                 className="text-muted-foreground"
               >
