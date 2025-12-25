@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Filter, SlidersHorizontal } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { AnimeCard } from '@/components/anime/AnimeCard';
 import { GenreFilter } from '@/components/anime/GenreFilter';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -11,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockAnime, genres, seasons, years, sortOptions } from '@/data/mockAnime';
+import { useBrowseAnime } from '@/hooks/useAnime';
+import { genres, seasons, years, sortOptions } from '@/data/mockAnime';
 
 const Browse = () => {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -19,6 +21,14 @@ const Browse = () => {
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [sortBy, setSortBy] = useState('popularity');
   const [showFilters, setShowFilters] = useState(false);
+
+  const { data: animeList = [], isLoading } = useBrowseAnime({
+    genres: selectedGenres.length > 0 ? selectedGenres : undefined,
+    season: selectedSeason || undefined,
+    seasonYear: selectedYear ? parseInt(selectedYear) : undefined,
+    sort: sortBy,
+    perPage: 30,
+  });
 
   const handleGenreSelect = (genre: string) => {
     if (genre === 'all') {
@@ -32,44 +42,6 @@ const Browse = () => {
     }
   };
 
-  const filteredAnime = useMemo(() => {
-    let result = [...mockAnime];
-
-    // Filter by genres
-    if (selectedGenres.length > 0) {
-      result = result.filter(anime =>
-        selectedGenres.some(genre => anime.genres.includes(genre))
-      );
-    }
-
-    // Filter by season
-    if (selectedSeason) {
-      result = result.filter(anime => anime.season === selectedSeason);
-    }
-
-    // Filter by year
-    if (selectedYear) {
-      result = result.filter(anime => anime.seasonYear === parseInt(selectedYear));
-    }
-
-    // Sort
-    switch (sortBy) {
-      case 'score':
-        result.sort((a, b) => b.score - a.score);
-        break;
-      case 'title':
-        result.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      case 'newest':
-        result.sort((a, b) => (b.seasonYear || 0) - (a.seasonYear || 0));
-        break;
-      default:
-        result.sort((a, b) => a.popularity - b.popularity);
-    }
-
-    return result;
-  }, [selectedGenres, selectedSeason, selectedYear, sortBy]);
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -80,7 +52,7 @@ const Browse = () => {
           <div>
             <h1 className="text-3xl font-bold">Browse Anime</h1>
             <p className="text-muted-foreground mt-1">
-              {filteredAnime.length} anime found
+              {isLoading ? 'Loading...' : `${animeList.length} anime found`}
             </p>
           </div>
           
@@ -168,14 +140,24 @@ const Browse = () => {
         </div>
 
         {/* Anime Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-          {filteredAnime.map(anime => (
-            <AnimeCard key={anime.id} anime={anime} />
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredAnime.length === 0 && (
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {Array.from({ length: 18 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="aspect-[2/3] rounded-xl" />
+                <Skeleton className="h-4 mt-2 w-3/4" />
+                <Skeleton className="h-3 mt-1 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : animeList.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+            {animeList.map(anime => (
+              <AnimeCard key={anime.id} anime={anime} />
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
           <div className="text-center py-20">
             <Filter className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">No anime found</h3>

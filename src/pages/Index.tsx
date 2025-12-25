@@ -1,49 +1,77 @@
 import { Navbar } from '@/components/layout/Navbar';
 import { HeroSection } from '@/components/anime/HeroSection';
 import { AnimeCarousel } from '@/components/anime/AnimeCarousel';
-import { mockAnime } from '@/data/mockAnime';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  useTrendingAnime, 
+  useTopRatedAnime, 
+  useAiringAnime,
+  usePopularAnime 
+} from '@/hooks/useAnime';
 
 const Index = () => {
-  const featuredAnime = mockAnime.slice(0, 4);
-  const trendingAnime = [...mockAnime].sort((a, b) => b.popularity - a.popularity);
-  const topRatedAnime = [...mockAnime].sort((a, b) => b.score - a.score);
-  const airingNow = mockAnime.filter(a => a.status === 'RELEASING');
-  const recentlyFinished = mockAnime.filter(a => a.status === 'FINISHED').slice(0, 8);
+  const { data: trendingAnime = [], isLoading: loadingTrending } = useTrendingAnime(15);
+  const { data: topRatedAnime = [], isLoading: loadingTopRated } = useTopRatedAnime(15);
+  const { data: airingAnime = [], isLoading: loadingAiring } = useAiringAnime(15);
+  const { data: popularAnime = [], isLoading: loadingPopular } = usePopularAnime(15);
+
+  const featuredAnime = trendingAnime.slice(0, 4);
+  const isLoading = loadingTrending || loadingTopRated || loadingAiring || loadingPopular;
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
       {/* Hero */}
-      <HeroSection featuredAnime={featuredAnime} />
+      {loadingTrending ? (
+        <div className="h-[70vh] md:h-[80vh] bg-secondary animate-pulse" />
+      ) : (
+        <HeroSection featuredAnime={featuredAnime} />
+      )}
 
       {/* Content Sections */}
       <main className="container mx-auto px-4 py-8 space-y-12">
         {/* Trending */}
-        <AnimeCarousel 
-          title="🔥 Trending Now" 
-          anime={trendingAnime}
-          showRank
-        />
+        {loadingTrending ? (
+          <CarouselSkeleton title="🔥 Trending Now" />
+        ) : (
+          <AnimeCarousel 
+            title="🔥 Trending Now" 
+            anime={trendingAnime}
+            showRank
+          />
+        )}
 
         {/* Currently Airing */}
-        <AnimeCarousel 
-          title="📺 Currently Airing" 
-          anime={airingNow}
-        />
+        {loadingAiring ? (
+          <CarouselSkeleton title="📺 Currently Airing" />
+        ) : (
+          <AnimeCarousel 
+            title="📺 Currently Airing" 
+            anime={airingAnime}
+          />
+        )}
 
         {/* Top Rated */}
-        <AnimeCarousel 
-          title="⭐ Top Rated" 
-          anime={topRatedAnime}
-          showRank
-        />
+        {loadingTopRated ? (
+          <CarouselSkeleton title="⭐ Top Rated" />
+        ) : (
+          <AnimeCarousel 
+            title="⭐ Top Rated" 
+            anime={topRatedAnime}
+            showRank
+          />
+        )}
 
-        {/* Recently Finished */}
-        <AnimeCarousel 
-          title="✅ Recently Finished" 
-          anime={recentlyFinished}
-        />
+        {/* Most Popular */}
+        {loadingPopular ? (
+          <CarouselSkeleton title="🏆 Most Popular" />
+        ) : (
+          <AnimeCarousel 
+            title="🏆 Most Popular" 
+            anime={popularAnime}
+          />
+        )}
 
         {/* Recommendations Section */}
         <section className="py-8">
@@ -75,7 +103,7 @@ const Index = () => {
               <span className="font-semibold gradient-text">AniTrack</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Track your anime journey • Powered by AniList & MyAnimeList
+              Track your anime journey • Powered by AniList
             </p>
             <div className="flex gap-4 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
@@ -88,5 +116,22 @@ const Index = () => {
     </div>
   );
 };
+
+function CarouselSkeleton({ title }: { title: string }) {
+  return (
+    <section>
+      <h2 className="text-xl md:text-2xl font-bold mb-4">{title}</h2>
+      <div className="flex gap-4 overflow-hidden">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex-shrink-0 w-36 md:w-44">
+            <Skeleton className="aspect-[2/3] rounded-xl" />
+            <Skeleton className="h-4 mt-2 w-3/4" />
+            <Skeleton className="h-3 mt-1 w-1/2" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default Index;

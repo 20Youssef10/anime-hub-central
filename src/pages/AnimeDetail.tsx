@@ -5,29 +5,55 @@ import {
   Clock, 
   Calendar, 
   Play, 
-  Plus, 
   Share2,
   Building,
-  Check
+  Loader2
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StreamingBadge } from '@/components/anime/StreamingBadge';
 import { WatchStatusSelect } from '@/components/anime/WatchStatusSelect';
 import { AnimeCarousel } from '@/components/anime/AnimeCarousel';
-import { mockAnime } from '@/data/mockAnime';
+import { useAnimeById, useRecommendations } from '@/hooks/useAnime';
 import { useWatchlist } from '@/hooks/useWatchlist';
-import { cn } from '@/lib/utils';
 
 const AnimeDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const anime = mockAnime.find(a => a.id === parseInt(id || '0'));
+  const animeId = parseInt(id || '0');
+  
+  const { data: anime, isLoading, error } = useAnimeById(animeId);
+  const { data: recommendations = [] } = useRecommendations(animeId, 10);
   const { getWatchlistItem, addToWatchlist, updateWatchlistItem, isInWatchlist } = useWatchlist();
 
   const watchlistItem = anime ? getWatchlistItem(anime.id) : undefined;
   const inList = anime ? isInWatchlist(anime.id) : false;
 
-  if (!anime) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="h-[50vh] bg-secondary animate-pulse" />
+        <div className="container mx-auto px-4 -mt-40 relative z-10">
+          <div className="flex flex-col md:flex-row gap-8">
+            <Skeleton className="w-48 md:w-64 aspect-[2/3] rounded-xl mx-auto md:mx-0" />
+            <div className="flex-1 space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-6 w-1/2" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-20 rounded-full" />
+                <Skeleton className="h-8 w-20 rounded-full" />
+                <Skeleton className="h-8 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !anime) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -49,9 +75,18 @@ const AnimeDetail = () => {
     }
   };
 
-  const similarAnime = mockAnime
-    .filter(a => a.id !== anime.id && a.genres.some(g => anime.genres.includes(g)))
-    .slice(0, 8);
+  // Calculate time until next episode
+  const getTimeUntilAiring = () => {
+    if (!anime.nextAiringEpisode) return null;
+    const now = Date.now() / 1000;
+    const diff = anime.nextAiringEpisode.airingAt - now;
+    const days = Math.floor(diff / 86400);
+    const hours = Math.floor((diff % 86400) / 3600);
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+    return 'Soon';
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -118,14 +153,18 @@ const AnimeDetail = () => {
                   <Clock className="w-4 h-4" />
                   {anime.episodes || '?'} Episodes
                 </span>
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  {anime.season} {anime.seasonYear}
-                </span>
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Building className="w-4 h-4" />
-                  {anime.studios.join(', ')}
-                </span>
+                {anime.season && anime.seasonYear && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    {anime.season} {anime.seasonYear}
+                  </span>
+                )}
+                {anime.studios.length > 0 && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Building className="w-4 h-4" />
+                    {anime.studios.join(', ')}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -177,7 +216,7 @@ const AnimeDetail = () => {
           <section>
             <h2 className="text-xl font-semibold mb-4">Synopsis</h2>
             <p className="text-muted-foreground leading-relaxed max-w-3xl">
-              {anime.synopsis}
+              {anime.synopsis || 'No synopsis available.'}
             </p>
           </section>
 
@@ -191,7 +230,7 @@ const AnimeDetail = () => {
                     Episode {anime.nextAiringEpisode.episode}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Airing in {Math.ceil((anime.nextAiringEpisode.airingAt - Date.now()) / 86400000)} days
+                    Airing in {getTimeUntilAiring()}
                   </p>
                 </div>
                 <Button variant="outline" className="gap-2">
@@ -202,10 +241,26 @@ const AnimeDetail = () => {
             </section>
           )}
 
-          {/* Similar Anime */}
-          {similarAnime.length > 0 && (
+          {/* Trailer */}
+          {anime.trailer && anime.trailer.site === 'youtube' && (
+            <section>
+              <h2 className="text-xl font-semibold mb-4">Trailer</h2>
+              <div className="aspect-video max-w-3xl rounded-xl overflow-hidden">
+                <iframe
+                  src={`https://www.youtube.com/embed/${anime.trailer.id}`}
+                  title={`${anime.title} Trailer`}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </section>
+          )}
+
+          {/* Recommendations */}
+          {recommendations.length > 0 && (
             <section className="pt-8">
-              <AnimeCarousel title="You Might Also Like" anime={similarAnime} />
+              <AnimeCarousel title="You Might Also Like" anime={recommendations} />
             </section>
           )}
         </div>
