@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Home, Compass, List, User, Bell } from 'lucide-react';
+import { Search, Menu, X, Home, Compass, List, User, Bell, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/browse', label: 'Browse', icon: Compass },
+  { to: '/seasonal', label: 'Seasonal', icon: Calendar },
   { to: '/watchlist', label: 'My List', icon: List },
 ];
 
@@ -60,6 +62,7 @@ export function Navbar() {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
             </Button>
+            <ThemeToggle className="text-muted-foreground hover:text-foreground hidden md:flex" />
             <Link to="/profile" className="hidden md:block">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                 <User className="w-5 h-5" />
